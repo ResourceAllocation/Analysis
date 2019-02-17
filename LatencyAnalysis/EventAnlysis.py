@@ -19,7 +19,6 @@ Messages = { "DE":[], "S":[], "C":[] }
 #
 
 def Get_Latency(Source,Destination):
-	print(Messages)
 	DeliveredI = {}
 	DeliveredT = {}
 	DeliveredV = {}
@@ -33,6 +32,7 @@ def Get_Latency(Source,Destination):
 	NoOfMEssagesV = 0
 
 	for Event in Messages["DE"]:
+
 		if ( 0 <= Event[2].find(Source) and 0 <= Event[3].find(Destination) ):
 			if ( "I" == Event[4][1] ):
 				DeliveredI[ Event[4] ] = float(Event[0])
@@ -63,16 +63,123 @@ def Get_Latency(Source,Destination):
 		"Video"   : TimeV/NoOfMEssagesV
 	}
 
+def GetDeliveryDTN():
+
+	MessagesTemp = {}
+	CreatedI = 0
+	CreatedT = 0
+	CreatedV = 0
+
+	DeliveredI = 0
+	DeliveredT = 0
+	DeliveredV = 0
+
+	for Event in Messages["C"]:
+		if ( "T" == Event[3][1] ):
+			CreatedT += 1
+		else:
+			if ( "I" == Event[3][1] ):
+				CreatedI += 1
+			else:
+				if ( "V" == Event[3][1] ):
+					CreatedV += 1
+
+	for Event in Messages["DE"]:
+
+		if ( 0 <= Event[2].find("dtn") and 0 <= Event[3].find("ADB") ):
+			if ( Event[4] in MessagesTemp):
+				continue
+			else:
+				MessagesTemp[Event[4]]=""
+			if ( "I" == Event[4][1] ):
+				DeliveredI += 1
+			
+			else:
+				if ( "T" == Event[4][1] ):
+					DeliveredT += 1
+			
+				else:
+					if ( "V" == Event[4][1] ):
+						DeliveredV += 1
+	return {
+		"Text"  : DeliveredT/CreatedT,
+		"Image" : DeliveredI/CreatedI,
+		"Video" : DeliveredV/CreatedV
+	}
+
+
+def GetDelivery(PreviousSource, Source, Destination):
+
+	MessagesTemp = {}
+	if("dtn" == Source):
+		return GetDeliveryDTN()
+
+	SourceRecievedI = 0
+	SourceRecievedT = 0
+	SourceRecievedV = 0
+
+	DestinationDeliveredI = 0
+	DestinationDeliveredT = 0
+	DestinationDeliveredV = 0
+
+	for Event in Messages["DE"]:
+		
+		if ( 0 <= Event[2].find(Source) and 0 <= Event[3].find(Destination) ):
+			if ( Event[4] in MessagesTemp):
+				continue
+			else:
+				MessagesTemp[Event[4]]=""
+			if ( "I" == Event[4][1] ):
+				DestinationDeliveredI += 1
+			
+			else:
+				if ( "T" == Event[4][1] ):
+					DestinationDeliveredT += 1
+			
+				else:
+					if ( "V" == Event[4][1] ):
+						DestinationDeliveredV += 1
+
+		MessagesTemp = {}
+		if ( 0 <= Event[3].find(Source) ):
+			if ( Event[4] in MessagesTemp):
+				continue
+			else:
+				MessagesTemp[Event[4]]=""
+			if ( "CD" == Destination ):
+				if( not 0 <= Event[2].find(PreviousSource) ):
+					continue
+
+			if ( "I" == Event[4][1] ):
+				SourceRecievedI += 1
+
+			else:
+				if ( "T" == Event[4][1] ):
+					SourceRecievedT += 1
+			
+				else:
+					if ( "V" == Event[4][1] ):
+						SourceRecievedV += 1
+
+	return {
+		"Text"  : DestinationDeliveredT/SourceRecievedT,
+		"Image" : DestinationDeliveredI/SourceRecievedI,
+		"Video" :DestinationDeliveredV/SourceRecievedV
+	}
 def DTN_TO_ADB():
 
 	Value = Get_Latency("dtn","ADB")
 	print ("\nDTN To ADB (In Seconds) :-",Value ,"\n")
+	Value = GetDelivery("dtn","dtn","ADB")
+	print ("\nDelivery Probability DTN To ADB  :-", Value,"\n")
 	return Value
 
 def ADB_To_CD():
 	
 	Value = Get_Latency("ADB","CD")
-	print ("\nADB To CD (In Seconds) :-", Value,"\n")
+	print ("\nLatency ADB To CD (In Seconds) :-", Value,"\n")
+	Value = GetDelivery("dtn","ADB","CD")
+	print ("\nDelivery Probability ADB To CD  :-", Value,"\n")
 	return Value
 
 
@@ -80,30 +187,37 @@ def CD_to_GC():
 
 	Value = Get_Latency("CD","ADB")
 	print ("\nCD To GC (In Seconds) :-", Value,"\n")
+	Value = GetDelivery("ADB","CD","ADB")
+	print ("\nDelivery Probability CD To GC :-", Value,"\n")
 	return Value 
 
 def GC_to_GC_WiFi():
 
 	Value = Get_Latency("ADB","WIFI")
 	print ("\nGC To GC WIFI (In Seconds) :-", Value,"\n")
+	Value = GetDelivery("CD","ADB","WIFI")
+	print ("\nDelivery Probability GC To GC WiFi  :-", Value,"\n")
 	return Value
 
 def GC_WIFI_to_MCS_WiFi():
 	
 	Value = Get_Latency("WIFI","WIFI")
 	print ("\nGC WIFI To MCS WIFI (In Seconds) :-", Value,"\n")
+	Value = GetDelivery("ADB","WIFI","WIFI")
+	print ("\nDelivery Probability GC WIFI To MCS WIFI  :-", Value,"\n")
 	return Value
 
 def MCS_WIFI_to_MCS_ADB():
 
 	Value = Get_Latency("WIFI","ADB")
 	print ("\nMCS WiFi To MCS ADB (In Seconds) :-", Value,"\n")
+	Value = GetDelivery("WIFI","WIFI","ADB")
+	print ("\nDelivery Probability MCS WIFI To MCS ADB  :-", Value,"\n")
 	return Value
 
 # Parsing the messages accoring to status in an dictionary
 def Parse_Status(Messages, Status):
 	
-	FileDescriptor = open(Status+".txt","w")
 	FileData = open(FileName,"r").read().split("\n")
 	
 	for StatusRow in FileData:
@@ -133,8 +247,7 @@ def Plot():
 	plt.bar(y_pos, performance, align='center', alpha=0.5)
 	plt.xticks(y_pos, objects)
 	plt.ylabel('Time In Seconds')
-	plt.title('latency')
-	 
+	plt.title('latency') 
 	plt.show()
 
 def GetConfig():
@@ -163,7 +276,7 @@ def main():
 	Parse_Status(Messages,"DE")
 	Parse_Status(Messages,"S")
 	Parse_Status(Messages,"C")
-	# Plot()
+	
 	DTN_TO_ADB()
 	ADB_To_CD()
 	CD_to_GC()
