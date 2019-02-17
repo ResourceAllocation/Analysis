@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 FileName = "abc.txt"
-Messages = { "DE":[], "S":[] }
+Messages = { "DE":[], "S":[], "C":[] }
 
 # Input : 
 #
@@ -19,49 +19,86 @@ Messages = { "DE":[], "S":[] }
 #
 
 def Get_Latency(Source,Destination):
-	Delivered = {}
-	Time = 0.00
-	NoOfMEssages = 0
+	print(Messages)
+	DeliveredI = {}
+	DeliveredT = {}
+	DeliveredV = {}
+
+	TimeI = 0.00
+	TimeT = 0.00
+	TimeV = 0.00
+
+	NoOfMEssagesI = 0
+	NoOfMEssagesT = 0
+	NoOfMEssagesV = 0
+
 	for Event in Messages["DE"]:
 		if ( 0 <= Event[2].find(Source) and 0 <= Event[3].find(Destination) ):
-			Delivered[ Event[4] ] = float(Event[0])
+			if ( "I" == Event[4][1] ):
+				DeliveredI[ Event[4] ] = float(Event[0])
+			else:
+				if ( "T" == Event[4][1] ):
+					DeliveredT[ Event[4] ] = float(Event[0])
+				else:
+					if ( "V" == Event[4][1] ):
+						DeliveredV[ Event[4] ] = float(Event[0])
+
 
 	for Event in Messages["S"]:
 		if ( 0 <= Event[2].find(Source) and 0 <= Event[3].find(Destination) ):
-			if ( Event[4] in Delivered ):
-				NoOfMEssages += 1
-				Time += Delivered[Event[4]] - float(Event[0])
-	return Time/float(NoOfMEssages)
+			if ( Event[4][1] == "I" and  Event[4] in DeliveredI ):
+				NoOfMEssagesI += 1
+				TimeI += DeliveredI[Event[4]] - float(Event[0])
+			else:
+				if ( Event[4][1] == "T" and  Event[4] in DeliveredT ):
+					NoOfMEssagesT += 1
+					TimeT += DeliveredT[Event[4]] - float(Event[0])
+				else:
+					if ( Event[4][1] == "V" and  Event[4] in DeliveredV ):
+						NoOfMEssagesV += 1
+						TimeV += DeliveredV[Event[4]] - float(Event[0])
+	return {
+		"Text"    : TimeT/NoOfMEssagesT,
+		"Images"  : TimeI/NoOfMEssagesI,
+		"Video"   : TimeV/NoOfMEssagesV
+	}
 
 def DTN_TO_ADB():
 
-	print "\nDTN To ADB (In Seconds) :-", Get_Latency("dtn","ADB"),"\n"
-
+	Value = Get_Latency("dtn","ADB")
+	print ("\nDTN To ADB (In Seconds) :-",Value ,"\n")
+	return Value
 
 def ADB_To_CD():
 	
-	print "\nADB To CD (In Seconds) :-", Get_Latency("ADB","CD"),"\n"
+	Value = Get_Latency("ADB","CD")
+	print ("\nADB To CD (In Seconds) :-", Value,"\n")
+	return Value
 
 
 def CD_to_GC():
 
-	print "\nCD To GC (In Seconds) :-", Get_Latency("CD","ADB"),"\n"
-
+	Value = Get_Latency("CD","ADB")
+	print ("\nCD To GC (In Seconds) :-", Value,"\n")
+	return Value 
 
 def GC_to_GC_WiFi():
 
-	print "\nGC To GC WIFI (In Seconds) :-", Get_Latency("ADB","WIFI"),"\n"
-
+	Value = Get_Latency("ADB","WIFI")
+	print ("\nGC To GC WIFI (In Seconds) :-", Value,"\n")
+	return Value
 
 def GC_WIFI_to_MCS_WiFi():
 	
-	print "\nGC WIFI To MCS WIFI (In Seconds) :-", Get_Latency("WIFI","WIFI"),"\n"
-
+	Value = Get_Latency("WIFI","WIFI")
+	print ("\nGC WIFI To MCS WIFI (In Seconds) :-", Value,"\n")
+	return Value
 
 def MCS_WIFI_to_MCS_ADB():
 
-	print "\nMCS WiFi To MCS ADB (In Seconds) :-", Get_Latency("WIFI","ADB"),"\n"
-
+	Value = Get_Latency("WIFI","ADB")
+	print ("\nMCS WiFi To MCS ADB (In Seconds) :-", Value,"\n")
+	return Value
 
 # Parsing the messages accoring to status in an dictionary
 def Parse_Status(Messages, Status):
@@ -76,7 +113,14 @@ def Parse_Status(Messages, Status):
 			Messages[Status].append(StatusRow)
 def Plot():
  
-	objects = ('Python', 'C++', 'Java', 'Perl', 'Scala', 'Lisp')
+	objects = (
+		'DTN_TO_ADB', 
+		'ADB_To_CD', 
+		'CD_to_GC', 
+		'GC_to_GC_WiFi', 
+		'GC_WIFI_to_MCS_WiFi', 
+		'MCS_WIFI_to_MCS_ADB'
+		)
 	y_pos = np.arange(len(objects))
 	performance = [DTN_TO_ADB(),
 		ADB_To_CD(), 
@@ -88,20 +132,44 @@ def Plot():
 	 
 	plt.bar(y_pos, performance, align='center', alpha=0.5)
 	plt.xticks(y_pos, objects)
-	plt.ylabel('Usage')
-	plt.title('Programming language usage')
+	plt.ylabel('Time In Seconds')
+	plt.title('latency')
 	 
 	plt.show()
+
+def GetConfig():
+	FileDescriptor = open("Config.txt","w")
+	if ( FileDescriptor ):
+
+		print (" Config File not found Error")
+		quit()
+
+	else:
+
+		Data = FileDescriptor.read()
+		if( 0<= Data.find("FileName") ):
+			Data = Data.split("\n")
+			for Row in Data:
+				if ( 2 < len(Row) ):
+					Data = Row.split("=")
+					break
+			FileName = Data[1]
+		else:
+			print("FileName Property Not Found in Config File")
+			quit()
 
 def main():
 
 	Parse_Status(Messages,"DE")
 	Parse_Status(Messages,"S")
-	# DTN_TO_ADB()
-	# ADB_To_CD()
-	# CD_to_GC()
-	# GC_to_GC_WiFi()
-	# GC_WIFI_to_MCS_WiFi()
-	# MCS_WIFI_to_MCS_ADB()
+	Parse_Status(Messages,"C")
+	# Plot()
+	DTN_TO_ADB()
+	ADB_To_CD()
+	CD_to_GC()
+	GC_to_GC_WiFi()
+	GC_WIFI_to_MCS_WiFi()
+	MCS_WIFI_to_MCS_ADB()
+
 
 main()
