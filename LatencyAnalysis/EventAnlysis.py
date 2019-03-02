@@ -2,8 +2,16 @@ import matplotlib.pyplot as plt; plt.rcdefaults()
 import numpy as np
 import matplotlib.pyplot as plt
 
-FileName = "abc.txt"
-Messages = { "DE":[], "S":[], "C":[] }
+# Defined the FileName of evenlog report
+FileName 		= "abc.txt"
+
+# Define the TTL of simulation
+TTL      		= 2
+SimulationTime 	= 4
+
+# Define the Message type the we are required
+Messages 		= { "DE":[], "S":[], "C":[] }
+
 
 # Input : 
 #
@@ -63,9 +71,11 @@ def Get_Latency(Source,Destination):
 		"Video"   : TimeV/NoOfMEssagesV
 	}
 
+
 def GetDeliveryDTN():
 
 	MessagesTemp = {}
+
 	CreatedI = 0
 	CreatedT = 0
 	CreatedV = 0
@@ -166,6 +176,7 @@ def GetDelivery(PreviousSource, Source, Destination):
 		"Image" : DestinationDeliveredI/SourceRecievedI,
 		"Video" :DestinationDeliveredV/SourceRecievedV
 	}
+
 def DTN_TO_ADB():
 
 	Value = Get_Latency("dtn","ADB")
@@ -217,14 +228,20 @@ def MCS_WIFI_to_MCS_ADB():
 
 # Parsing the messages accoring to status in an dictionary
 def Parse_Status(Messages, Status):
-	
-	FileData = open(FileName,"r").read().split("\n")
-	
+	TTLInSeconds           	= TTL * 60 * 60 
+	SimulationTimeInSecond 	= SimulationTime * 60 * 60
+	Threshold 			   	=  SimulationTimeInSecond - TTLInSeconds
+	print (Threshold)
+	FileData 				= open(FileName,"r").read().split("\n")	
 	for StatusRow in FileData:
 
 		StatusRow = StatusRow.split(" ")
 		if ( 2 < len(StatusRow) and Status == StatusRow[1] ):
+			if( (not Status == 'DE') and float(StatusRow[0]) > Threshold ):
+					continue
 			Messages[Status].append(StatusRow)
+
+
 def Plot():
  
 	objects = (
@@ -249,27 +266,6 @@ def Plot():
 	plt.ylabel('Time In Seconds')
 	plt.title('latency') 
 	plt.show()
-
-def GetConfig():
-	FileDescriptor = open("Config.txt","w")
-	if ( FileDescriptor ):
-
-		print (" Config File not found Error")
-		quit()
-
-	else:
-
-		Data = FileDescriptor.read()
-		if( 0<= Data.find("FileName") ):
-			Data = Data.split("\n")
-			for Row in Data:
-				if ( 2 < len(Row) ):
-					Data = Row.split("=")
-					break
-			FileName = Data[1]
-		else:
-			print("FileName Property Not Found in Config File")
-			quit()
 
 def main():
 
