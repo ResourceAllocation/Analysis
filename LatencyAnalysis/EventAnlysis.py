@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt; plt.rcdefaults()
-import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt; plt.rcdefaults()
+# import numpy as np
+# import matplotlib.pyplot as plt
 
 # Defined the FileName of evenlog report
 FileName 		= "abc.txt"
@@ -12,7 +12,7 @@ SimulationTime 	= 4
 # Define the Message type the we are required
 Messages 		= { "DE":[], "S":[], "C":[] }
 
-
+NotToInclude            = {}
 # Input : 
 #
 #	Source (String) : Consist the source of device of which message is started transferring
@@ -112,9 +112,9 @@ def GetDeliveryDTN():
 					if ( "V" == Event[4][1] ):
 						DeliveredV += 1
 	return {
-		"Text"  : DeliveredT/CreatedT,
-		"Image" : DeliveredI/CreatedI,
-		"Video" : DeliveredV/CreatedV
+		"Text"  : float(DeliveredT)/float(CreatedT),
+		"Image" : float(DeliveredI)/float(CreatedI),
+		"Video" : float(DeliveredV)/float(CreatedV)
 	}
 
 
@@ -172,9 +172,9 @@ def GetDelivery(PreviousSource, Source, Destination):
 						SourceRecievedV += 1
 
 	return {
-		"Text"  : DestinationDeliveredT/SourceRecievedT,
-		"Image" : DestinationDeliveredI/SourceRecievedI,
-		"Video" :DestinationDeliveredV/SourceRecievedV
+		"Text"  : float(DestinationDeliveredT)/float(SourceRecievedT),
+		"Image" : float(DestinationDeliveredI)/float(SourceRecievedI),
+		"Video" : float(DestinationDeliveredV)/float(SourceRecievedV)
 	}
 
 def DTN_TO_ADB():
@@ -228,6 +228,7 @@ def MCS_WIFI_to_MCS_ADB():
 
 # Parsing the messages accoring to status in an dictionary
 def Parse_Status(Messages, Status):
+	global NotToInclude
 	TTLInSeconds           	= TTL * 60 * 60 
 	SimulationTimeInSecond 	= SimulationTime * 60 * 60
 	Threshold 			   	=  SimulationTimeInSecond - TTLInSeconds
@@ -238,7 +239,10 @@ def Parse_Status(Messages, Status):
 		StatusRow = StatusRow.split(" ")
 		if ( 2 < len(StatusRow) and Status == StatusRow[1] ):
 			if( (not Status == 'DE') and float(StatusRow[0]) > Threshold ):
-					continue
+				NotToInclude[StatusRow[-4]]=StatusRow[0]+" "+StatusRow[1]
+				continue
+			if ( Status == 'DE' and StatusRow[-4] in NotToInclude):
+				continue
 			Messages[Status].append(StatusRow)
 
 
@@ -269,9 +273,9 @@ def Plot():
 
 def main():
 
-	Parse_Status(Messages,"DE")
 	Parse_Status(Messages,"S")
 	Parse_Status(Messages,"C")
+	Parse_Status(Messages,"DE")
 	
 	DTN_TO_ADB()
 	ADB_To_CD()
